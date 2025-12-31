@@ -1,0 +1,25 @@
+{
+  "name": "tron-contracts",
+  "scripts": {
+    "compile": "tronbox compile",
+    "migrate": "tronbox migrate",
+    "test": "tronbox test",
+    "console": "tronbox console",
+    "clean": "tronbox clean",
+    "verify": "tronbox exec scripts/verify_contracts.js --network shasta",
+    "verify:detailed": "tronbox exec scripts/verify_contracts_detailed.js --network shasta",
+    "verify:tronscan": "tronbox exec scripts/verify_contracts_tronscan.js --network shasta",
+    "flatten": "tronbox exec scripts/flatten_contracts.js --network shasta"
+  },
+  "devDependencies": {
+    "tronbox": "^4.3.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.8.0",
+    "tronweb": "^6.0.4"
+  }
+}
