@@ -70,6 +70,10 @@ interface ILiquidityPool {
 
     function withdrawLiquidity(address token, uint256 amount) external;
 
+    function setRebalanceWhitelist(address destination, bool allowed) external;
+    function rebalancePool(address token, uint256 amount, address to) external;
+    function rebalanceWhitelist(address destination) external view returns (bool);
+
     function getReserves(address token) external view returns (uint256 amount);
 
     function isWhitelisted(address token) external view returns (bool);

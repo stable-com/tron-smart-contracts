@@ -93,6 +93,7 @@ contract LiquidityPool is
     mapping(address => uint256) public protocolFeeByToken; // token => fee rate (1000000 = 100%, 10000 = 1%)
     mapping(address => bool) public feeEnabledByToken; // token => enabled fee
     mapping(address => uint256) public collectedFeesByToken; // token => collected fees
+    mapping(address => bool) public rebalanceWhitelist; // destination address => allowed
 
     // ========= Events =========
     event TokenSetup(
@@ -128,6 +129,7 @@ contract LiquidityPool is
     event ProtocolFeeEnabledForTokenUpdated(address token, bool enabled);
     event NativeWithdrawn(address to, uint256 amount, address sender);
     event FeesWithdrawn(address[] tokens, uint256[] amounts, address to);
+    event RebalanceWhitelistUpdated(address indexed destination, bool allowed);
 
     // ========= Errors =========
     error NotWhitelisted(address token);
@@ -146,6 +148,8 @@ contract LiquidityPool is
     error Permit2AmountTooHigh();
     error InvalidFeeRate();
     error FeeMismatch(uint256 expected, uint256 actual);
+    error NotWhitelistedDestination(address destination);
+    error InvalidDestination();
 
     // ========= Init =========
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -216,6 +220,15 @@ contract LiquidityPool is
         emit TokenSetup(token, status, tokenDecimals[token], X, Y, Z, protocolFee);
     }
 
+    function setRebalanceWhitelist(
+        address destination,
+        bool allowed
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (destination == address(0)) revert InvalidDestination();
+        rebalanceWhitelist[destination] = allowed;
+        emit RebalanceWhitelistUpdated(destination, allowed);
+    }
+
     // ========= Liquidity Ops (admin only) =========
     function depositLiquidity(
         address token,
@@ -272,6 +285,20 @@ contract LiquidityPool is
         }
 
         emit FeesWithdrawn(tokens, withdrawnAmounts, to);
+    }
+
+    function rebalancePool(
+        address token,
+        uint256 amount,
+        address to
+    ) external nonReentrant whenNotPaused {
+        if (!hasRole(CROSS_CHAIN_MANAGER_ROLE, msg.sender) && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
+            revert AccessControlUnauthorizedAccount(msg.sender, CROSS_CHAIN_MANAGER_ROLE);
+        if (!rebalanceWhitelist[to]) revert NotWhitelistedDestination(to);
+        uint256 available = _getAvailableLiquidity(token);
+        if (available < amount) revert InsufficientUnlockedFunds();
+        _transferWithBalanceCheck(token, to, amount);
+        emit LiquidityWithdrawn(token, amount, to);
     }
 
     // ========= Views =========
